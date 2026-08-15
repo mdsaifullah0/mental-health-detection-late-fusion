@@ -21,6 +21,14 @@ This study presents a multilingual, security-conscious text-based framework buil
 
 ---
 
+## 📦 Model Weights
+Due to GitHub's file size limit, the trained model weight (`fusion_model.pt`) is hosted on Google Drive:
+- 🔗 **[Download Trained Fusion Model (Google Drive)](https://drive.google.com/file/d/1T6tRRtCLVey8jiSN3HV81YbD-ymG1fAV/view?usp=sharing)**
+
+> **Note:** After downloading, place the `fusion_model.pt` file in the root directory of this project before running the application.
+
+---
+
 ## 🏗️ System Architecture
 
 ```text
@@ -65,6 +73,7 @@ pip install -r requirements.txt
 ```bash
 python app.py
 ```
+Open `http://localhost:5000` in your web browser.
 
 ---
 
