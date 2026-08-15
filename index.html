@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Health Text Classifier with AI Chat</title>
+    <!-- Add Marked.js for markdown parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 40px;
+            transition: all 0.3s ease;
+        }
+
+        /* Responsive grid layout */
+        .main-content.chat-active {
+            grid-template-columns: 1fr 1.5fr;
+        }
+
+        .analysis-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .chat-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            display: none;
+            transition: all 0.3s ease;
+        }
+
+        .chat-section.active {
+            display: block;
+        }
+
+        .section-title {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            text-align: center;
+        }
+
+        .text-input {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 10px rgba(79, 172, 254, 0.3);
+        }
+
+        .char-counter {
+            text-align: right;
+            margin-top: 5px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .predict-btn, .chat-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            font-weight: 600;
+            margin: 0 10px;
+        }
+
+        .predict-btn:hover, .chat-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .predict-btn:disabled, .chat-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4facfe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .results h2 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .prediction-main {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .prediction-main h3 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .confidence {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .all-predictions {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .all-predictions h4 {
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .prediction-item:last-child {
+            border-bottom: none;
+        }
+
+        .class-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .probability-bar {
+            flex: 1;
+            margin: 0 15px;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .probability-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .percentage {
+            font-weight: 600;
+            color: #4facfe;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .chat-container {
+            height: 500px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: height 0.3s ease;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            margin: 0;
+            font-size: 1.1em;
+        }
+
+        .chat-resize-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s;
+        }
+
+        .chat-resize-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: white;
+            scroll-behavior: smooth;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 10px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 85%;
+            word-wrap: break-word;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            background: #4facfe;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 3px;
+        }
+
+        .message.assistant {
+            background: #f0f0f0;
+            color: #333;
+            border-bottom-left-radius: 3px;
+        }
+
+        .message.system {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            text-align: center;
+            margin: 10px auto;
+            font-style: italic;
+            max-width: 90%;
+        }
+
+        /* Markdown formatting styles */
+        .message h1, .message h2, .message h3 {
+            color: #333;
+            margin: 10px 0 5px 0;
+        }
+
+        .message h1 { font-size: 1.4em; }
+        .message h2 { font-size: 1.3em; }
+        .message h3 { font-size: 1.2em; }
+
+        .message strong {
+            font-weight: 600;
+            color: #2c5282;
+        }
+
+        .message em {
+            font-style: italic;
+            color: #4a5568;
+        }
+
+        .message ul, .message ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .message li {
+            margin: 5px 0;
+        }
+
+        .message p {
+            margin: 8px 0;
+        }
+
+        .message blockquote {
+            border-left: 4px solid #4facfe;
+            padding-left: 10px;
+            margin: 10px 0;
+            color: #666;
+        }
+
+        .message code {
+            background: #f7f7f7;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .chat-input-container {
+            padding: 15px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: none;
+            max-height: 100px;
+            min-height: 40px;
+            font-family: inherit;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 5px rgba(79, 172, 254, 0.3);
+        }
+
+        .send-btn {
+            background: #4facfe;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .send-btn:hover {
+            background: #3d8bfe;
+            transform: translateY(-1px);
+        }
+
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 10px 15px;
+            color: #666;
+            font-style: italic;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .info-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+            grid-column: 1 / -1;
+        }
+
+        .info-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .info-section p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .classes-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .class-tag {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .resources-section {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            border-left: 4px solid #4facfe;
+        }
+
+        .resources-section h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+
+        .resources-section ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .resources-section li {
+            padding: 6px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .resources-section li:last-child {
+            border-bottom: none;
+        }
+
+        .resources-section li:hover {
+            background: #f0f8ff;
+            padding-left: 5px;
+            transition: all 0.2s ease;
+        }
+
+        /* Responsive design */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .main-content.chat-active {
+                grid-template-columns: 1fr;
+            }
+            
+            .chat-container {
+                height: 400px;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .classes-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .chat-container {
+                height: 350px;
+            }
+            
+            .message {
+                max-width: 95%;
+            }
+            
+            .predict-btn, .chat-btn {
+                padding: 12px 30px;
+                font-size: 1em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .analysis-section, .chat-section {
+                padding: 20px;
+            }
+            
+            .chat-container {
+                height: 300px;
+            }
+            
+            .predict-btn, .chat-btn {
+                display: block;
+                margin: 10px 0;
+                width: 100%;
+            }
+        }
+
+        /* Fullscreen chat mode */
+        .chat-fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: white;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-fullscreen .chat-container {
+            height: 100vh;
+            border: none;
+            border-radius: 0;
+        }
+
+        .chat-fullscreen .section-title {
+            padding: 20px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Mental Health Text Classifier with AI Chat</h1>
+            <p>AI-powered analysis and personalized mental health support</p>
+        </div>
+
+        <div class="main-content" id="mainContent">
+            <div class="analysis-section">
+                <h2 class="section-title">Text Analysis</h2>
+                
+                <div class="input-section">
+                    <textarea 
+                        id="textInput" 
+                        class="text-input" 
+                        placeholder="Please enter the text you would like to analyze. The model will classify it into one of the mental health categories and provide personalized support..."
+                        maxlength="2000"
+                    ></textarea>
+                    <div class="char-counter">
+                        <span id="charCount">0</span> / 2000 characters
+                    </div>
+                </div>
+
+                <div class="button-container">
+                    <button id="predictBtn" class="predict-btn" onclick="makePrediction()">
+                        🔍 Analyze Text
+                    </button>
+                </div>
+
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing text...</p>
+                </div>
+
+                <div id="error" class="error" style="display: none;"></div>
+
+                <div id="results" class="results">
+                    <h2>Analysis Results</h2>
+                    
+                    <div id="mainPrediction" class="prediction-main">
+                        <h3 id="predictedClass"></h3>
+                        <div class="confidence">
+                            Confidence: <span id="confidenceScore"></span>
+                        </div>
+                    </div>
+
+                    <div class="all-predictions">
+                        <h4>Detailed Probability Breakdown</h4>
+                        <div id="allPredictions"></div>
+                    </div>
+
+
+                </div>
+            </div>
+
+            <div class="chat-section" id="chatSection">
+                <h2 class="section-title">AI Support Chat</h2>
+                
+                <div class="chat-container" id="chatContainer">
+                    <div class="chat-header">
+                        <h3>💬 Chat Assistant</h3>
+                        <button class="chat-resize-btn" onclick="toggleChatSize()">
+                            <span id="resizeText">Expand</span>
+                        </button>
+                    </div>
+                    
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="messages-container" id="messagesContainer">
+                            <div class="message system">
+                                Chat will appear here after analysis...
+                            </div>
+                        </div>
+                        
+                        <div class="typing-indicator" id="typingIndicator">
+                            AI is typing...
+                        </div>
+                    </div>
+                    
+                    <div class="chat-input-container">
+                        <textarea 
+                            id="chatInput" 
+                            class="chat-input" 
+                            placeholder="Type your message here..."
+                            disabled
+                            rows="1"
+                        ></textarea>
+                        <button id="sendBtn" class="send-btn" onclick="sendMessage()" disabled>
+                            Send
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="resourcesSection" class="resources-section" style="display: none;">
+                    <h4>📚 Helpful Resources</h4>
+                    <ul id="resourcesList"></ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>📋 About This Tool</h3>
+            <p>This advanced AI tool combines mental health text classification with personalized support chat. It analyzes text to identify potential mental health indicators and provides tailored guidance through an AI assistant.</p>
+            
+            <div class="classes-list">
+                <div class="class-tag">Depression</div>
+                <div class="class-tag">Suicidal</div>
+                <div class="class-tag">Normal</div>
+                <div class="class-tag">Anxiety</div>
+                <div class="class-tag">Bipolar</div>
+                <div class="class-tag">Stress</div>
+                <div class="class-tag">Personality Disorder</div>
+            </div>
+
+            <p style="margin-top: 15px;">
+                <strong>Important:</strong> This tool is for informational and support purposes only and should not be used as a substitute for professional medical advice, diagnosis, or treatment. If you're experiencing mental health concerns, please consult with a qualified healthcare professional.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const textInput = document.getElementById('textInput');
+        const charCount = document.getElementById('charCount');
+        const predictBtn = document.getElementById('predictBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
+        const chatSection = document.getElementById('chatSection');
+        const chatMessages = document.getElementById('chatMessages');
+        const messagesContainer = document.getElementById('messagesContainer');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const mainContent = document.getElementById('mainContent');
+        const chatContainer = document.getElementById('chatContainer');
+
+        let currentSessionId = null;
+        let isWaitingForResponse = false;
+        let chatExpanded = false;
+        let chatFullscreen = false;
+
+        // Character counter
+        textInput.addEventListener('input', function() {
+            const count = this.value.length;
+            charCount.textContent = count;
+            
+            if (count > 1900) {
+                charCount.style.color = '#ff6b6b';
+            } else {
+                charCount.style.color = '#666';
+            }
+        });
+
+        // Auto-resize chat input
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+        });
+
+        // Handle Enter key in chat input
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Toggle chat size
+        function toggleChatSize() {
+            const resizeText = document.getElementById('resizeText');
+            
+            if (!chatExpanded) {
+                // Expand chat
+                chatContainer.style.height = '600px';
+                mainContent.classList.add('chat-active');
+                resizeText.textContent = 'Compress';
+                chatExpanded = true;
+            } else {
+                // Compress chat
+                chatContainer.style.height = '500px';
+                mainContent.classList.remove('chat-active');
+                resizeText.textContent = 'Expand';
+                chatExpanded = false;
+            }
+        }
+
+        // Make prediction
+        async function makePrediction() {
+            const text = textInput.value.trim();
+            
+            if (!text) {
+                showError('Please enter some text to analyze.');
+                return;
+            }
+
+            if (text.length < 10) {
+                showError('Please enter at least 10 characters for better analysis.');
+                return;
+            }
+
+            // Show loading state
+            predictBtn.disabled = true;
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            error.style.display = 'none';
+            chatSection.style.display = 'none';
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Prediction failed');
+                }
+
+                showResults(data);
+                initializeChat(data);
+
+            } catch (err) {
+                showError('Error: ' + err.message);
+            } finally {
+                predictBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        function showResults(data) {
+            // Main prediction
+            document.getElementById('predictedClass').textContent = data.predicted_class;
+            document.getElementById('confidenceScore').textContent = data.confidence_percentage;
+
+            // All predictions
+            const allPredictionsDiv = document.getElementById('allPredictions');
+            allPredictionsDiv.innerHTML = '';
+
+            data.all_predictions.forEach(pred => {
+                const item = document.createElement('div');
+                item.className = 'prediction-item';
+                
+                item.innerHTML = `
+                    <div class="class-name">${pred.class}</div>
+                    <div class="probability-bar">
+                        <div class="probability-fill" style="width: ${pred.probability * 100}%"></div>
+                    </div>
+                    <div class="percentage">${pred.percentage}</div>
+                `;
+                
+                allPredictionsDiv.appendChild(item);
+            });
+
+            results.style.display = 'block';
+            results.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function initializeChat(data) {
+            currentSessionId = data.chat_session_id;
+            
+            // Clear chat messages
+            messagesContainer.innerHTML = '';
+            
+            // Add initial message
+            addMessage('system', 'AI Assistant is ready to help based on your analysis results.');
+            addMessage('assistant', data.initial_llm_response);
+            
+            // Load and show resources in chat
+            loadResources(data.predicted_class);
+            
+            // Enable chat
+            chatInput.disabled = false;
+            sendBtn.disabled = false;
+            
+            // Show chat section with animation
+            chatSection.style.display = 'block';
+            chatSection.classList.add('active');
+            
+            // Auto-expand chat for better visibility
+            setTimeout(() => {
+                if (!chatExpanded) {
+                    toggleChatSize();
+                }
+            }, 500);
+            
+            // Focus on chat input
+            setTimeout(() => {
+                chatInput.focus();
+            }, 100);
+        }
+
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            
+            if (!message || isWaitingForResponse) {
+                return;
+            }
+
+            // Add user message
+            addMessage('user', message);
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            // Disable input while waiting
+            isWaitingForResponse = true;
+            chatInput.disabled = true;
+            sendBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        message: message
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Chat failed');
+                }
+
+                // Hide typing indicator
+                hideTypingIndicator();
+                
+                // Add assistant response with markdown parsing
+                addMessage('assistant', data.response);
+
+            } catch (err) {
+                hideTypingIndicator();
+                addMessage('system', 'Error: ' + err.message);
+            } finally {
+                // Re-enable input
+                isWaitingForResponse = false;
+                chatInput.disabled = false;
+                sendBtn.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        function addMessage(type, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            // Parse markdown for assistant messages
+            if (type === 'assistant') {
+                // Configure marked options
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true
+                });
+                messageDiv.innerHTML = marked.parse(content);
+            } else {
+                messageDiv.textContent = content;
+            }
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            typingIndicator.style.display = 'block';
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            typingIndicator.style.display = 'none';
+        }
+
+        async function loadResources(predictedClass) {
+            try {
+                const response = await fetch(`/resources/${predictedClass}`);
+                const data = await response.json();
+                
+                const resourcesList = document.getElementById('resourcesList');
+                const resourcesSection = document.getElementById('resourcesSection');
+                
+                resourcesList.innerHTML = '';
+                
+                data.resources.forEach(resource => {
+                    const li = document.createElement('li');
+                    li.textContent = resource;
+                    resourcesList.appendChild(li);
+                });
+                
+                // Show resources section in chat
+                resourcesSection.style.display = 'block';
+                
+                // Scroll to show resources
+                setTimeout(() => {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }, 100);
+                
+            } catch (err) {
+                console.error('Error loading resources:', err);
+            }
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+            results.style.display = 'none';
+            chatSection.style.display = 'none';
+        }
+
+        // Auto-resize textarea
+        textInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 300) + 'px';
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth <= 1024 && chatExpanded) {
+                // Auto-compress chat on small screens
+                chatContainer.style.height = '400px';
+                mainContent.classList.remove('chat-active');
+                document.getElementById('resizeText').textContent = 'Expand';
+                chatExpanded = false;
+            }
+        });
+    </script>
+</body>
+</html>
